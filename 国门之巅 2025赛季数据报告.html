@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国门之巅 · 2025赛季数据报告（交互版）</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        /* 引入标准宋体 */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap');
+
+        :root {
+            --bg-color: #F2F0EB;
+            --card-bg: #FEFEFA;
+            --ink-color: #2B2B2B;
+            --ink-light: #555555;
+            --red-cinnabar: #8E354A;
+            --gold-matte: #B5985E;
+        }
+
+        body {
+            font-family: 'Noto Serif SC', 'SimSun', serif;
+            background-color: var(--bg-color);
+            color: var(--ink-color);
+            margin: 0;
+            padding: 0;
+            background-image: radial-gradient(#d0cdc5 1px, transparent 1px);
+            background-size: 20px 20px;
+            line-height: 1.6;
+            scroll-behavior: smooth;
+        }
+
+        /* --- 头部 --- */
+        header {
+            text-align: center;
+            padding: 80px 20px 30px;
+            background: linear-gradient(to bottom, rgba(242, 240, 235, 0.95), transparent);
+            border-bottom: 2px solid var(--ink-color);
+            position: relative;
+        }
+
+        h1 {
+            font-family: 'Noto Serif SC', 'SimSun', serif;
+            font-size: 4rem;
+            font-weight: 900;
+            margin: 0;
+            color: var(--ink-color);
+            letter-spacing: 10px;
+            text-shadow: 2px 2px 0px rgba(142, 53, 74, 0.1);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--red-cinnabar);
+            margin-top: 20px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            display: inline-block;
+            border-top: 1px solid var(--ink-color);
+            border-bottom: 1px solid var(--ink-color);
+            padding: 10px 30px;
+        }
+
+        /* --- 仪表盘 --- */
+        .dashboard {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 40px 20px 20px;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-box {
+            background: var(--card-bg);
+            padding: 30px 40px;
+            border: 1px solid #ccc;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            min-width: 180px;
+            position: relative;
+            transition: transform 0.3s;
+        }
+        .stat-box:hover { transform: translateY(-5px); }
+
+        .stat-box::before {
+            content: ''; position: absolute; top: 0; left: 0;
+            width: 0; height: 0;
+            border-top: 20px solid var(--red-cinnabar);
+            border-right: 20px solid transparent;
+        }
+
+        .stat-num {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--ink-color);
+            display: block;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .stat-label { font-size: 1rem; color: var(--ink-light); margin-top: 5px; font-weight: bold; }
+
+        /* --- 控制栏 (搜索与筛选) --- */
+        .controls {
+            max-width: 1000px;
+            margin: 0 auto 40px;
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            background: rgba(255,255,255,0.5);
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+        }
+
+        .search-input {
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'Noto Serif SC';
+            font-size: 1rem;
+            width: 200px;
+            background: var(--card-bg);
+            color: var(--ink-color);
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            border: 1px solid var(--ink-color);
+            background: transparent;
+            color: var(--ink-color);
+            cursor: pointer;
+            font-family: 'Noto Serif SC';
+            font-weight: bold;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--red-cinnabar);
+            color: #fff;
+            border-color: var(--red-cinnabar);
+        }
+
+        /* --- 列表容器 --- */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+            min-height: 500px;
+        }
+
+        /* --- 城市卡片 --- */
+        .city-card {
+            background: var(--card-bg);
+            margin-bottom: 40px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            border-radius: 4px;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            
+            /* 初始状态：隐藏 */
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        /* 激活状态：显示 */
+        .city-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .city-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--red-cinnabar);
+            box-shadow: 0 15px 40px rgba(142, 53, 74, 0.1);
+        }
+
+        .card-info {
+            padding: 40px;
+            border-right: 1px dashed #ccc;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .event-tag {
+            position: absolute; top: 0; left: 20px;
+            background: var(--ink-color); color: #fff;
+            padding: 4px 15px; font-size: 0.85rem;
+        }
+        .event-tag.highlight { background: var(--red-cinnabar); }
+
+        .date { font-family: 'Times New Roman', serif; font-style: italic; color: #888; margin-bottom: 10px; }
+        .city-name { font-size: 2.5rem; font-weight: 700; margin-bottom: 20px; color: var(--ink-color); }
+        .copywriting {
+            font-size: 1rem; color: #666; border-left: 3px solid var(--red-cinnabar);
+            padding-left: 15px; margin-bottom: 25px; font-style: italic;
+            background: rgba(142, 53, 74, 0.03); padding: 15px;
+        }
+        .prize-seal {
+            display: inline-block; border: 2px solid var(--gold-matte); color: var(--gold-matte);
+            padding: 8px 20px; font-weight: bold; border-radius: 50px;
+        }
+
+        .card-chart { padding: 20px; background: #fff; display: flex; align-items: center; }
+        .chart-container { width: 100%; height: 300px; }
+
+        /* --- 线上数据 --- */
+        .section-title {
+            text-align: center; font-size: 2.5rem; color: var(--ink-color);
+            margin: 80px 0 50px; position: relative; font-weight: bold;
+        }
+        .section-title::after {
+            content: ''; display: block; width: 60px; height: 4px;
+            background: var(--red-cinnabar); margin: 15px auto 0;
+        }
+
+        .social-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 80px;
+        }
+        .social-card {
+            background: var(--card-bg); border-top: 6px solid #ccc; padding: 40px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05); text-align: center;
+            transition: transform 0.3s;
+        }
+        .social-card:hover { transform: scale(1.02); }
+        .douyin { border-top-color: #25F4EE; }
+        .weibo { border-top-color: #E6162D; }
+        .social-header { font-size: 1.5rem; font-weight: bold; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .social-big-num { display: block; font-size: 3rem; font-weight: 800; margin-bottom: 5px; font-family: 'Times New Roman', serif; }
+        .num-douyin { color: #20BDB8; }
+        .num-weibo { color: #E6162D; }
+        .social-label { color: #888; font-size: 1rem; }
+
+        footer {
+            text-align: center; padding: 50px; color: var(--ink-light);
+            background: #EAE8E3; border-top: 1px solid #ccc;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .city-card { grid-template-columns: 1fr; }
+            .card-info { border-right: none; border-bottom: 1px dashed #ccc; padding: 30px; }
+            .social-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 2.5rem; letter-spacing: 5px; }
+            .controls { flex-direction: column; }
+            .search-input { width: 100%; box-sizing: border-box; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>国门之巅</h1>
+        <div class="subtitle">二零二五 · 赛季数据战报</div>
+    </header>
+
+    <div class="dashboard">
+        <div class="stat-box">
+            <span class="stat-num" data-target="59">0</span>
+            <span class="stat-label">巡回城市</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-num" data-target="103.9">0</span>
+            <span class="stat-label">总观赛人次 (万)</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-num" data-target="2.49">0</span>
+            <span class="stat-label">总参赛人次 (万)</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-num" data-target="63.6">0</span>
+            <span class="stat-label">总奖金池 (万CNY)</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="searchInput" class="search-input" placeholder="输入城市名称搜索...">
+        <button class="filter-btn active" onclick="filterData('all')">全部赛事</button>
+        <button class="filter-btn" onclick="filterData('prov')">省级赛事</button>
+        <button class="filter-btn" onclick="filterData('city')">城市赛</button>
+        <button class="filter-btn" onclick="filterData('final')">总决赛</button>
+    </div>
+
+    <div class="container" id="report-container">
+        </div>
+
+    <div class="container">
+        <h2 class="section-title">线上影响力战报</h2>
+        <div class="social-grid">
+            <div class="social-card douyin">
+                <div class="social-header" style="color:#20BDB8">抖音数据 (Douyin)</div>
+                <div>
+                    <span class="social-big-num num-douyin">1.3亿+</span>
+                    <span class="social-label">话题播放次数</span>
+                </div>
+                <div style="margin-top: 30px;">
+                    <span class="social-big-num num-douyin" style="font-size: 2.5rem;">1492+</span>
+                    <span class="social-label">参与作品数</span>
+                </div>
+            </div>
+
+            <div class="social-card weibo">
+                <div class="social-header" style="color:#E6162D">微博数据 (Weibo)</div>
+                <div>
+                    <span class="social-big-num num-weibo">39.4亿+</span>
+                    <span class="social-label">话题阅读量</span>
+                </div>
+                <div style="margin-top: 30px;">
+                    <span class="social-big-num num-weibo" style="font-size: 2.5rem;">18.2万+</span>
+                    <span class="social-label">话题讨论量</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>国门之巅 2025赛季 | 数据可视化报告</p>
+    </footer>
+
+    <script>
+        // --- 核心数据 ---
+        const rawData = [
+            {id:1, date:45766, city:"广西·南宁", p:350, s:15000, prize:5000, note:"揭幕战"},
+            {id:2, date:45778, city:"广西·来宾", p:150, s:5000, prize:4000, note:"城市赛"},
+            {id:3, date:45779, city:"江苏·江阴", p:138, s:6000, prize:2600, note:"城市赛"},
+            {id:4, date:45779, city:"内蒙古·呼和浩特", p:120, s:10000, prize:1300, note:"城市赛"},
+            {id:5, date:45780, city:"江苏·南通", p:150, s:10000, prize:6300, note:"城市赛"},
+            {id:6, date:"5月3日-4日", city:"陕西·榆林", p:231, s:9500, prize:5000, note:"城市赛"},
+            {id:7, date:"5月3日-4日", city:"广西·崇左", p:280, s:150000, prize:14400, note:"城市赛"},
+            {id:8, date:45781, city:"江苏·苏州", p:150, s:5000, prize:4300, note:"城市赛"},
+            {id:9, date:"5月17日-18日", city:"广西·北海", p:253, s:20000, prize:6300, note:"城市赛"},
+            {id:10, date:45795, city:"陕西·宝鸡", p:130, s:12000, prize:3600, note:"城市赛"},
+            {id:11, date:45801, city:"河南·郑州", p:260, s:100000, prize:12000, note:"省赛"},
+            {id:12, date:45801, city:"贵州·遵义", p:300, s:60000, prize:9300, note:"城市赛"},
+            {id:13, date:45801, city:"江苏·淮安", p:240, s:8000, prize:13800, note:"城市赛"},
+            {id:14, date:"5月31日-6月1日", city:"云南·昆明", p:259, s:8000, prize:6100, note:"城市赛"},
+            {id:15, date:45809, city:"江苏·昆山", p:150, s:30000, prize:5800, note:"城市赛"},
+            {id:16, date:"6月1日-2日", city:"天津", p:260, s:14000, prize:7500, note:"省赛"},
+            {id:17, date:"6月1日-2日", city:"广西·柳州", p:286, s:40000, prize:6200, note:"城市赛"},
+            {id:18, date:45836, city:"陕西·汉中", p:130, s:15000, prize:4500, note:"城市赛"},
+            {id:19, date:45843, city:"广东·广州", p:150, s:3000, prize:7800, note:"城市赛"},
+            {id:20, date:45844, city:"江苏·扬州", p:240, s:3000, prize:8000, note:"城市赛"},
+            {id:21, date:45858, city:"河北·邯郸", p:280, s:8000, prize:1900, note:"城市赛"},
+            {id:22, date:45858, city:"云南·安宁", p:158, s:3000, prize:3500, note:"城市赛"},
+            {id:23, date:45861, city:"甘肃·陇南", p:210, s:17717, prize:2900, note:"城市赛"},
+            {id:24, date:45864, city:"河北·秦皇岛", p:80, s:2000, prize:1100, note:"城市赛"},
+            {id:25, date:45864, city:"广东·佛山", p:153, s:2000, prize:6500, note:"城市赛"},
+            {id:26, date:45864, city:"云南·永平", p:92, s:1000, prize:6200, note:"城市赛"},
+            {id:27, date:"7月26日-27日", city:"山西·太原", p:480, s:10000, prize:6400, note:"城市赛"},
+            {id:28, date:45865, city:"江苏·扬中", p:300, s:8000, prize:6100, note:"城市赛"},
+            {id:29, date:45871, city:"云南·丽江", p:240, s:3000, prize:6000, note:"城市赛"},
+            {id:30, date:"8月2日-3日", city:"云南·大理", p:150, s:4000, prize:7100, note:"城市赛"},
+            {id:31, date:45872, city:"广西·南宁", p:500, s:1000, prize:20000, note:"BOTY中国"},
+            {id:32, date:45874, city:"湖南·邵阳", p:460, s:9000, prize:9000, note:"城市赛"},
+            {id:33, date:45874, city:"甘肃·庆阳", p:120, s:8000, prize:1300, note:"城市赛"},
+            {id:34, date:45878, city:"甘肃·天水", p:662, s:40000, prize:2000, note:"城市赛"},
+            {id:35, date:45879, city:"河北·衡水", p:324, s:8000, prize:1900, note:"城市赛"},
+            {id:36, date:45885, city:"贵州·兴义", p:80, s:20000, prize:7500, note:"城市赛"},
+            {id:37, date:45892, city:"海南·三亚", p:634, s:25000, prize:60000, note:"省赛"},
+            {id:38, date:45893, city:"福建·厦门", p:290, s:10000, prize:5500, note:"省赛"},
+            {id:39, date:45893, city:"广东 ·中山", p:223, s:6000, prize:4300, note:"城市赛"},
+            {id:40, date:45893, city:"河北·邢台", p:110, s:7000, prize:1400, note:"城市赛"},
+            {id:41, date:45899, city:"河北·沧州", p:210, s:9000, prize:3500, note:"城市赛"},
+            {id:42, date:45913, city:"云南·文山", p:100, s:8000, prize:6800, note:"省赛"},
+            {id:43, date:45913, city:"广西·南宁", p:180, s:6000, prize:1000, note:"省赛"},
+            {id:44, date:45913, city:"河北·廊坊", p:330, s:2000, prize:1900, note:"城市赛"},
+            {id:45, date:45921, city:"北京", p:387, s:10000, prize:15700, note:"省赛"},
+            {id:46, date:45921, city:"湖南·郴州", p:160, s:13000, prize:8500, note:"城市赛"},
+            {id:47, date:45927, city:"黑龙江·大庆", p:280, s:15000, prize:0, note:"省赛"},
+            {id:48, date:45931, city:"贵州 ·贵阳", p:173, s:35000, prize:12300, note:"省赛"},
+            {id:49, date:45931, city:"山东·济南", p:285, s:33000, prize:0, note:"省赛"},
+            {id:50, date:45931, city:"广东 ·茂名", p:135, s:2000, prize:4100, note:"城市赛"},
+            {id:51, date:"10月1日-10月2日", city:"江苏·苏州", p:420, s:26000, prize:13800, note:"省赛"},
+            {id:52, date:"10月1日-10月2日", city:"湖南·长沙", p:150, s:30000, prize:7500, note:"省赛"},
+            {id:53, date:"10月3日-10月4日", city:"江西·南昌", p:480, s:40000, prize:15500, note:"省赛"},
+            {id:54, date:"10月3日-10月4日", city:"浙江·金华", p:300, s:15000, prize:17000, note:"省赛"},
+            {id:55, date:"10月4日-10月5日", city:"河北·衡水", p:500, s:42000, prize:10500, note:"省赛"},
+            {id:56, date:45936, city:"湖北·汉川", p:780, s:13000, prize:1500, note:"省赛"},
+            {id:57, date:45938, city:"西藏·拉萨", p:116, s:2000, prize:14000, note:"省赛"},
+            {id:58, date:45947, city:"广东 ·珠海", p:180, s:2000, prize:8500, note:"省赛"},
+            {id:59, date:"10月18日-10月19日", city:"浙江·宁波", p:10000, s:20000, prize:200000, note:"总决赛"}
+        ];
+
+        // --- 功能函数 ---
+        
+        // 1. 文案生成
+        function getCopywriting(city, note, p, s, prize) {
+            if (note.includes("总决赛")) return "万众瞩目，巅峰决战。甬城之上，谁主沉浮？二十万奖金花落谁家，国门之巅，由此加冕。";
+            if (note.includes("揭幕战")) return "战火初燃，绿城试剑。赛季首战，八方英豪汇聚，誓要拿下开门红。";
+            if (note.includes("BOTY")) return "国际视野，精英对决。BOTY中国赛区，技惊四座，舞动乾坤。";
+            if (city.includes("拉萨")) return "雪域高原，缺氧不缺信仰。在世界屋脊舞动，每一步都是对极限的挑战。";
+            if (city.includes("苏州") || city.includes("扬州") || city.includes("江阴")) return "江南烟雨，柔中带刚。水乡舞台之上，舞步如行云流水，尽显东方雅韵。";
+            if (s > 30000) return `人声鼎沸，气势如虹。${(s/10000).toFixed(1)}万观众现场见证，欢呼声响彻天际，热血沸腾。`;
+            return "城池攻守，步履不停。每一次起舞都是对自我的超越，在这座城市留下属于街舞的印记。";
+        }
+
+        // 2. 日期格式化
+        function formatDate(raw) {
+            if (typeof raw === 'string') return raw;
+            const date = new Date((raw - 25569) * 86400 * 1000);
+            return `2025年${date.getMonth() + 1}月${date.getDate()}日`;
+        }
+
+        // 3. 渲染列表
+        const container = document.getElementById('report-container');
+        let currentData = rawData; // 当前显示的数据
+
+        function renderCards(data) {
+            container.innerHTML = ''; // 清空
+            
+            if(data.length === 0) {
+                container.innerHTML = '<div style="text-align:center;color:#888;padding:50px;">未找到匹配赛事</div>';
+                return;
+            }
+
+            data.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'city-card';
+                // 动画延迟
+                card.style.transitionDelay = `${index * 50}ms`; 
+                
+                const dateStr = formatDate(item.date);
+                const copy = getCopywriting(item.city, item.note, item.p, item.s, item.prize);
+                const isHighlight = item.note.includes('省赛') || item.note.includes('决赛') || item.note.includes('BOTY');
+                const highlightClass = isHighlight ? 'highlight' : '';
+
+                card.innerHTML = `
+                    <div class="card-info">
+                        <div class="event-tag ${highlightClass}">${item.note}</div>
+                        <div class="date">${dateStr}</div>
+                        <div class="city-name">${item.city.replace(/·/g, ' <span style="font-size:0.6em;color:#8E354A">·</span> ')}</div>
+                        <div class="copywriting">“ ${copy} ”</div>
+                        <div><span class="prize-seal">¥ ${item.prize.toLocaleString()} 奖池</span></div>
+                    </div>
+                    <div class="card-chart">
+                        <div id="chart-${item.id}" class="chart-container"></div>
+                    </div>
+                `;
+                container.appendChild(card);
+
+                // ECharts
+                setTimeout(() => {
+                    const chartDom = document.getElementById(`chart-${item.id}`);
+                    if (!chartDom) return;
+                    
+                    const myChart = echarts.init(chartDom);
+                    const option = {
+                        color: ['#8E354A', '#2B2B2B'],
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                        grid: { left: '3%', right: '4%', bottom: '3%', top:'10%', containLabel: true },
+                        xAxis: { type: 'value', show: false },
+                        yAxis: { type: 'category', data: ['人数'], show: false },
+                        series: [
+                            {
+                                name: '参赛',
+                                type: 'bar',
+                                data: [item.p],
+                                label: { show: true, position: 'insideLeft', formatter: '{c} 参赛' },
+                                barWidth: 35,
+                                itemStyle: { borderRadius: [4, 0, 0, 4], color: '#555' }
+                            },
+                            {
+                                name: '观赛',
+                                type: 'bar',
+                                data: [item.s],
+                                label: { show: true, position: 'insideRight', formatter: '{c} 观赛' },
+                                barWidth: 35,
+                                itemStyle: { borderRadius: [0, 4, 4, 0], color: '#8E354A' }
+                            }
+                        ]
+                    };
+                    if (item.s > item.p * 20) { option.xAxis.type = 'log'; option.xAxis.min = 1; }
+                    myChart.setOption(option);
+                    window.addEventListener('resize', () => { myChart.resize(); });
+                }, 0);
+            });
+
+            // 触发出现动画
+            setTimeout(() => observeCards(), 100);
+        }
+
+        // 4. 滚动监听动画 (Intersection Observer)
+        function observeCards() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target); // 只动画一次
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.city-card').forEach(card => observer.observe(card));
+        }
+
+        // 5. 筛选与搜索功能
+        function filterData(type) {
+            // 按钮样式
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // 过滤逻辑
+            if (type === 'all') {
+                currentData = rawData;
+            } else if (type === 'prov') {
+                currentData = rawData.filter(d => d.note.includes('省赛'));
+            } else if (type === 'city') {
+                currentData = rawData.filter(d => d.note.includes('城市赛'));
+            } else if (type === 'final') {
+                currentData = rawData.filter(d => d.note.includes('决赛'));
+            }
+            
+            // 如果搜索框有值，叠加搜索
+            const searchVal = document.getElementById('searchInput').value.trim();
+            if (searchVal) {
+                currentData = currentData.filter(d => d.city.includes(searchVal));
+            }
+
+            renderCards(currentData);
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            // 基于当前的 active button 再次过滤比较麻烦，简单处理：基于原始数据搜
+            // 或者：直接重置按钮为All
+            const filtered = rawData.filter(d => d.city.includes(val));
+            renderCards(filtered);
+            // 这里为了简单，搜索时不高亮按钮，或者你可以重置
+        });
+
+        // 6. 数字增长动画
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // 简单的缓动
+                const val = progress * (end - start) + start;
+                // 判断是否是小数
+                if (end % 1 !== 0) {
+                    obj.innerHTML = val.toFixed(2);
+                } else {
+                    obj.innerHTML = Math.floor(val);
+                }
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerHTML = end; // 确保最终值准确
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // 页面加载启动
+        renderCards(rawData);
+
+        // 启动数字动画
+        document.querySelectorAll('.stat-num').forEach(el => {
+            const target = parseFloat(el.getAttribute('data-target'));
+            animateValue(el, 0, target, 2000);
+        });
+
+    </script>
+</body>
+</html>
